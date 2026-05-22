@@ -8,38 +8,7 @@ This repository contains both **Google Cloud Platform (GCP)** and **Amazon Web S
 
 ## Architecture & RPC Flow
 
-```
-                         INTERNET
-                             │
-                      ┌──────▼──────┐
-                      │  Firewall   │  Cloud Security Group / Firewall
-                      │  Port 3000  │  (only port open to public)
-                      └──────┬──────┘
-                             │
-           ┌─────────────────▼──────────────────┐
-           │        api-gateway VM              │
-           │   Public IP: <GATEWAY_PUBLIC_IP>   │  Port 3000
-           │   Private IP: 10.0.1.4             │
-           │   (Express.js API Gateway)         │
-           └──────┬──────────────────┬──────────┘
-                  │  Private Subnet  │
-                  │   10.0.1.0/24    │
-                  │                  │
-       HTTP RPC   ▼                  ▼   HTTP RPC
-       port 3001                     port 8000
-   ┌────────────────────┐       ┌──────────────────────┐
-   │  ts-worker VM      │       │  python-worker VM    │
-   │  Private IP only   │──────▶│  Private IP only     │
-   │  10.0.1.3          │       │  10.0.1.5            │
-   │  (TypeScript Node) │       │  (Python Inference)  │
-   └────────────────────┘       └──────────────────────┘
-
-   Legend:
-   ──────────────────────────────────────────────────
-   ▶  HTTP POST (JSON RPC over private subnet only)
-   ─  No route from internet to worker VMs
-   ─  NAT Gateway/Router lets workers download packages (outbound only)
-```
+![Architecture Diagram](architecture_diagram.png)
 
 ### Request Flow
 1. **User** sends a `POST /infer` request to the public **API Gateway** (port 3000).
