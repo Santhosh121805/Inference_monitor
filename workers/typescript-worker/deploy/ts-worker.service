@@ -1,0 +1,43 @@
+[Unit]
+Description=TypeScript Chaining Worker
+Documentation=https://github.com/YOUR_USERNAME/inference-monitor
+After=network.target
+StartLimitIntervalSec=200
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=tsworker
+WorkingDirectory=/opt/ts-worker
+
+# Load worker config from env file (written by deploy/setup.sh)
+EnvironmentFile=/etc/ts-worker/.env
+
+ExecStart=/usr/bin/node /opt/ts-worker/dist/worker.js
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+
+# Graceful shutdown
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+# Logging → systemd journal
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ts-worker
+
+# Resource limits
+LimitNOFILE=65536
+MemoryLimit=256M
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/ts-worker
+
+[Install]
+WantedBy=multi-user.target

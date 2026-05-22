@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Mock Python Worker
+  python-worker:
+    image: python:3.11-slim
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./mock-workers/python:/app
+    working_dir: /app
+    command: python -m http.server 8000
+    environment:
+      PYTHONUNBUFFERED: "1"
+    networks:
+      - workers-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Mock TypeScript Worker
+  typescript-worker:
+    image: node:20-slim
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./mock-workers/typescript:/app
+    working_dir: /app
+    command: >
+      bash -c "npm install && npm run dev"
+    environment:
+      PYTHONWORKER_URL: "http://python-worker:8000"
+      PORT: "3001"
+    networks:
+      - workers-net
+    depends_on:
+      python-worker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # API Gateway
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      PYTHON_WORKER_URL: "http://python-worker:8000"
+      TYPESCRIPT_WORKER_URL: "http://typescript-worker:3001"
+      PORT: "3000"
+      REQUEST_TIMEOUT_MS: "30000"
+      LOG_LEVEL: "debug"
+      NODE_ENV: "development"
+      RATE_LIMIT_MAX_REQUESTS: "1000"
+    networks:
+      - workers-net
+    depends_on:
+      - typescript-worker
+    volumes:
+      - ./src:/app/src
+    command: npm run dev
+
+networks:
+  workers-net:
+    driver: bridge

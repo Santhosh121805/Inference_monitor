@@ -1,0 +1,112 @@
+#!/bin/bash
+##############################################################################
+# API Gateway – AWS Startup Script
+# Installs Node.js 20, copies the api-gateway app from the repo
+# (cloned via git), and starts systemd.
+# Worker URLs are dynamically injected via Terraform template rendering.
+##############################################################################
+set -euo pipefail
+exec > /var/log/startup-gateway.log 2>&1
+
+echo "[startup] Gateway startup script beginning at $(date)"
+
+PYTHON_WORKER_URL="http://${python_worker_ip}:8000"
+TS_WORKER_URL="http://${ts_worker_ip}:3001"
+GW_PORT=3000
+
+echo "[startup] Python worker URL : $PYTHON_WORKER_URL"
+echo "[startup] TypeScript worker URL: $TS_WORKER_URL"
+
+# ── System packages ────────────────────────────────────────────────────────
+apt-get update -y
+apt-get install -y curl ca-certificates git
+
+# ── Node.js 20 ─────────────────────────────────────────────────────────────
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get install -y nodejs
+echo "[startup] Node.js $(node -v) installed"
+
+# ── Clone repo ─────────────────────────────────────────────────────────────
+# We pull a public read-only repository here to fetch the api-gateway folder.
+# By default, we use your project's GitHub URL. If it's a private repo, 
+# you can change this to a public fork or include your credentials.
+REPO_URL="https://github.com/Santhosh121805/inference-monitor.git"
+CLONE_DIR="/opt/repo"
+
+if [[ -d "$CLONE_DIR" ]]; then
+    cd "$CLONE_DIR" && git pull || true
+else
+    git clone "$REPO_URL" "$CLONE_DIR"
+fi
+
+APP_DIR="/opt/gateway"
+mkdir -p "$APP_DIR"
+cp -r "$CLONE_DIR/api-gateway/." "$APP_DIR/"
+
+# ── Install dependencies and build ────────────────────────────────────────
+cd "$APP_DIR"
+npm install --omit=dev
+npm run build
+
+# ── Create dedicated user ─────────────────────────────────────────────────
+if ! id "gateway" &>/dev/null; then
+    useradd -r -s /usr/sbin/nologin -d "$APP_DIR" gateway
+fi
+
+# ── Write environment file ────────────────────────────────────────────────
+mkdir -p /etc/gateway
+cat > /etc/gateway/.env << EOF
+PYTHON_WORKER_URL=$${PYTHON_WORKER_URL}
+TYPESCRIPT_WORKER_URL=$${TS_WORKER_URL}
+PORT=$${GW_PORT}
+REQUEST_TIMEOUT_MS=30000
+LOG_LEVEL=info
+NODE_ENV=production
+RATE_LIMIT_MAX_REQUESTS=60
+EOF
+chmod 600 /etc/gateway/.env
+
+chown -R gateway:gateway "$APP_DIR" /etc/gateway
+
+# ── Write systemd unit ────────────────────────────────────────────────────
+cat > /etc/systemd/system/gateway.service << 'EOF'
+[Unit]
+Description=API Gateway - Distributed Inference Mesh Front Door
+After=network.target
+StartLimitIntervalSec=200
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=gateway
+WorkingDirectory=/opt/gateway
+EnvironmentFile=/etc/gateway/.env
+ExecStart=/usr/bin/node /opt/gateway/dist/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=api-gateway
+
+LimitNOFILE=65536
+MemoryLimit=512M
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# ── Enable and start ──────────────────────────────────────────────────────
+systemctl daemon-reload
+systemctl enable gateway.service
+systemctl start gateway.service
+
+echo "[startup] Gateway startup complete at $(date)"
+systemctl status gateway.service --no-pager || true

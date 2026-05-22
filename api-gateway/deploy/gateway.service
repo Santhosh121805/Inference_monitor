@@ -1,0 +1,43 @@
+[Unit]
+Description=API Gateway - Distributed Worker Mesh Front Door
+After=network.target
+StartLimitIntervalSec=200
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=gateway
+WorkingDirectory=/opt/gateway
+
+# Load environment from config file
+EnvironmentFile=/etc/gateway/.env
+
+# Start command - ensure dist/ is built
+ExecStart=/usr/bin/node /opt/gateway/dist/server.js
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+
+# Graceful shutdown - systemd will send SIGTERM and wait up to TimeoutStopSec
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=api-gateway
+
+# Resource limits
+LimitNOFILE=65536
+MemoryLimit=512M
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

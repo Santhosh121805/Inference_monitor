@@ -1,0 +1,15 @@
+# ── AWS Deployment Configuration ──────────────────────────────────────────
+
+# The AWS region where your resources will be provisioned.
+# AWS Free Tier includes EC2 instances in most regions (e.g. us-east-1, us-east-2, us-west-2).
+aws_region = "us-east-1"
+
+# The EC2 instance type. 
+# "t2.micro" is 100% Free-Tier eligible. In some newer regions (like us-east-2 or eu-west-1), 
+# you can also use "t3.micro" if preferred and eligible.
+instance_type = "t2.micro"
+
+# The name of your AWS SSH Key Pair.
+# You must create this key pair in your AWS Console (under EC2 > Key Pairs) BEFORE running terraform apply.
+# Download the .pem file and save it securely on your local computer.
+ssh_key_name = "your-aws-key-name"

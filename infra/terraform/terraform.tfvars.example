@@ -1,0 +1,30 @@
+# Copy this file to terraform.tfvars and fill in your values
+# cp terraform.tfvars.example terraform.tfvars
+
+# Your GCP project ID (find it in GCP Console > Project Info)
+project_id = "your-gcp-project-id"
+
+# Region and zone – us-central1 has free-tier e2-micro quota
+region = "us-central1"
+zone   = "us-central1-a"
+
+# Network names (defaults are fine)
+vpc_name    = "inference-vpc"
+subnet_name = "inference-subnet"
+subnet_cidr = "10.0.1.0/24"
+
+# VM sizes – e2-micro is free-tier eligible (1 vCPU, 1GB RAM)
+machine_type         = "e2-micro"
+gateway_machine_type = "e2-micro"
+
+# OS image
+os_image = "debian-cloud/debian-12"
+
+# SSH access
+ssh_user             = "devops"
+ssh_public_key_path  = "~/.ssh/id_rsa.pub"
+
+# Ports (defaults are fine)
+python_worker_port = 8000
+ts_worker_port     = 3001
+gateway_port       = 3000

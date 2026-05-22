@@ -27,11 +27,37 @@ async function request<T>(baseUrl: string, path: string, init?: RequestInit): Pr
   return (await res.json()) as T;
 }
 
-export const getHealth = (baseUrl: string, signal?: AbortSignal) =>
-  request<HealthResponse>(baseUrl, "/health", { signal });
+export const getHealth = async (baseUrl: string, signal?: AbortSignal): Promise<HealthResponse> => {
+  const raw = await request<any>(baseUrl, "/health", { signal });
+  
+  const normalizeWorker = (w: any) => {
+    if (typeof w === "string") {
+      return { reachable: w === "reachable" };
+    }
+    if (w && typeof w === "object" && "reachable" in w) {
+      return { reachable: !!w.reachable };
+    }
+    return { reachable: false };
+  };
 
-export const getMetrics = (baseUrl: string, signal?: AbortSignal) =>
-  request<MetricsResponse>(baseUrl, "/metrics", { signal });
+  return {
+    uptime: raw.uptime_seconds ?? raw.uptime ?? 0,
+    workers: {
+      python: normalizeWorker(raw.workers?.python),
+      typescript: normalizeWorker(raw.workers?.typescript),
+    },
+  };
+};
+
+export const getMetrics = async (baseUrl: string, signal?: AbortSignal): Promise<MetricsResponse> => {
+  const raw = await request<any>(baseUrl, "/metrics", { signal });
+  return {
+    total_requests: raw.total_requests ?? 0,
+    avg_latency_ms: raw.average_latency_ms ?? raw.avg_latency_ms ?? 0,
+    error_count: raw.error_count ?? 0,
+    uptime: raw.uptime_seconds ?? raw.uptime ?? 0,
+  };
+};
 
 export const postInfer = (baseUrl: string, payload: InferPayload, signal?: AbortSignal) =>
   request<InferResponse>(baseUrl, "/infer", {

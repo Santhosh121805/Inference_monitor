@@ -1,0 +1,17 @@
+{
+  "name": "ts-worker",
+  "version": "1.0.0",
+  "description": "TypeScript chaining worker – forwards inference requests to Python worker",
+  "main": "dist/worker.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/worker.js",
+    "dev": "ts-node src/worker.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2"
+  }
+}
