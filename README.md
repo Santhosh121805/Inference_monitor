@@ -1,6 +1,6 @@
 # Distributed Inference Monitor
 
-A distributed Small Language Model (SLM) inference mesh. It runs across three VMs connected over HTTP RPC inside a private network subnet, fronted by a public API Gateway. 
+A distributed Small Language Model (SLM) inference mesh. It runs across three VMs connected over HTTP RPC inside a private network subnet, fronted by a public API Gateway. The frontend is built with Lovable.
 
 This repository contains both **Google Cloud Platform (GCP)** and **Amazon Web Services (AWS)** Infrastructure-as-Code, deployment scripts (systemd units), and the application source code.
 
