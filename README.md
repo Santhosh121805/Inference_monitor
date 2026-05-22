@@ -105,7 +105,7 @@ curl http://<GATEWAY_PUBLIC_IP>:3000/metrics
    cp terraform.tfvars.example terraform.tfvars
    # Edit terraform.tfvars to match your aws_region and set ssh_key_name = "inference-key"
    terraform init
-   terraform apply -auto-approve
+   terraform apply -auto-approve or type yes to approve 
    ```
 
 *Note: Startup scripts will configure and run Node/Python, register the services as systemd units, and start them automatically. Wait ~3 minutes after `terraform apply` finishes for all installations to complete.*
